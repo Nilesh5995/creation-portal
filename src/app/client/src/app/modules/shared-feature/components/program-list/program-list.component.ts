@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ProgramsService, RegistryService, UserService } from '@sunbird/core';
-import { ResourceService, ToasterService } from '@sunbird/shared';
+import { ResourceService, ToasterService, ConfigService } from '@sunbird/shared';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IProgram } from '../../../core/interfaces';
 import * as _ from 'lodash-es';
@@ -9,6 +9,7 @@ import { forkJoin } from 'rxjs';
 import * as moment from 'moment';
 import { DatePipe } from '@angular/common';
 import { programContext } from '../../../contribute/components/list-nominated-textbooks/data';
+import { IInteractEventEdata } from '@sunbird/telemetry';
 @Component({
   selector: 'app-program-list',
   templateUrl: './program-list.component.html',
@@ -33,13 +34,20 @@ export class ProgramListComponent implements OnInit {
   public filterProgramsByType: any;
   public direction = 'asc';
   public enrollPrograms: IProgram[];
+  public telemetryInteractCdata: any;
+  public telemetryInteractPdata: any;
+  public telemetryInteractObject: any;
+  public nominationList;
   constructor(private programsService: ProgramsService, private toasterService: ToasterService, private registryService: RegistryService,
     public resourceService: ResourceService, private userService: UserService, private activatedRoute: ActivatedRoute,
-    public router: Router, private datePipe: DatePipe ) { }
+    public router: Router, private datePipe: DatePipe, public configService: ConfigService ) { }
 
   ngOnInit() {
     this.checkIfUserIsContributor();
     this.roles = _.get(programContext, 'config.roles');
+    this.telemetryInteractCdata = [];
+    this.telemetryInteractPdata = {id: this.userService.appId, pid: this.configService.appConfig.TELEMETRY.PID};
+    this.telemetryInteractObject = {};
   }
 
   /**
@@ -130,6 +138,35 @@ export class ProgramListComponent implements OnInit {
       this.direction = 'asc';
     }
   }
+  public getContributionProgramList(req) {
+    this.programsService.getMyProgramsForContrib(req)
+        .subscribe((response) => {
+
+        this.programs = _.map(_.get(response, 'result.programs'), (nomination: any) => {
+          if(nomination.program) {
+            nomination.program = _.merge({}, nomination.program, {
+              contributionDate: nomination.createdon,
+              nomination_status: nomination.status,
+              nominated_collection_ids: nomination.collection_ids
+            });
+            return  nomination.program;
+          } else {
+            nomination = _.merge({}, nomination, {
+              contributionDate: nomination.createdon,
+              nomination_status: nomination.status,
+              nominated_collection_ids: nomination.collection_ids
+            });
+            return  nomination;
+          }
+
+          });
+        this.enrollPrograms = this.programs;
+        this.count = _.get(response, 'result.count');
+      }, error => {
+        console.log(error);
+        // TODO: Add error toaster
+      });
+  }
 
   mergeAllAndNominatedPrograms(allPrograms,enrolledPrograms)
   {
@@ -170,21 +207,45 @@ export class ProgramListComponent implements OnInit {
    * fetch the list of programs.
    */
   private getMyProgramsForContrib(status) {
-    return this.programsService.getMyProgramsForContrib(status).subscribe((response) => {
-      const programs  = [];
-      _.map(_.get(response, 'result.programs'), (nomination) => {
-        nomination.program.contributionDate = nomination.createdon;
-        nomination.program.nomination_status = nomination.status;
-        nomination.program.nominated_collection_ids = nomination.collection_ids;
-        programs.push(nomination.program);
-      });
-      this.programs = programs;
-      this.enrollPrograms = programs;
-      this.count = _.get(response, 'result.count');
-    }, error => {
-      console.log(error);
-      // TODO: Add error toaster
-    });
+    if (!_.isEmpty(this.userService.userProfile.userRegData)
+    && this.userService.userProfile.userRegData.User_Org.roles.indexOf('admin') === -1) {
+      const filters = {
+        organisation_id: this.userService.userProfile.userRegData.User_Org.orgId
+      };
+      this.programsService.getNominationList(filters)
+        .subscribe(
+          (data) => {
+          if (data.result && data.result.length > 0) {
+            this.nominationList = _.map(_.filter(data.result, obj => {
+             return obj.status === 'Approved';
+            }), 'program_id');
+            const req = {
+              request: {
+                filters: {
+                  program_id: this.nominationList,
+                  status: status
+                }
+              }
+            };
+            this.getContributionProgramList(req);
+          }
+        }, (error) => {
+          console.log(error);
+          this.toasterService.error('Fetching nominated program failed');
+        });
+    } else {
+      const req = {
+        request: {
+          filters: {
+            enrolled_id: {
+              user_id: _.get(this.userService, 'userProfile.userId'),
+            },
+            status: status
+          }
+        }
+      };
+      this.getContributionProgramList(req);
+    }
   }
 
   getContributionOrgUsers(selectedProgram) {
@@ -267,6 +328,9 @@ export class ProgramListComponent implements OnInit {
   viewDetailsBtnClicked(program) {
     if (this.isContributor) {
       if (this.activeMyProgramsMenu) {
+        if (program.nomination_status === 'Initiated') {
+          return this.router.navigateByUrl('/contribute/program/' + program.program_id);
+        }
         return this.router.navigateByUrl('/contribute/nominatedtextbooks/' + program.program_id);
       }
 
@@ -332,5 +396,14 @@ export class ProgramListComponent implements OnInit {
     }, error => {
       console.log(error);
     });
+  }
+
+  getTelemetryInteractEdata(id: string, type: string, pageid: string, extra?: string): IInteractEventEdata {
+    return _.omitBy({
+      id,
+      type,
+      pageid,
+      extra
+    }, _.isUndefined);
   }
 }
