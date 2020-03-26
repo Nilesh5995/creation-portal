@@ -33,8 +33,7 @@ export class ContentService extends DataService {
   constructor(config: ConfigService, http: HttpClient) {
     super(http);
     this.config = config;
-    //this.baseUrl = this.config.urlConFig.URLS.CONTENT_PREFIX;
-    this.baseUrl = 'http://dock.sunbirded.org/content/' || this.config.urlConFig.URLS.CONTENT_PREFIX;
+    this.baseUrl = this.config.urlConFig.URLS.CONTENT_PREFIX;
   }
 
 }
