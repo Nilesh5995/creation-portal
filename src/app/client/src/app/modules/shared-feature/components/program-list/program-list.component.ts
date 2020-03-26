@@ -170,7 +170,6 @@ export class ProgramListComponent implements OnInit {
 
   mergeAllAndNominatedPrograms(allPrograms,enrolledPrograms)
   {
-    allPrograms = []
     _.map(allPrograms, (allProgram) => {
       _.map(enrolledPrograms, (enrolledProgram) => {
         if(allProgram.program_id == enrolledProgram.program_id)

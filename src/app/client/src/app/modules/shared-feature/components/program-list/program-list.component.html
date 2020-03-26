@@ -10,8 +10,8 @@
       </div>
       <select class="ui dropdown" (change)="filterProgramByType($event.target.value)" *ngIf="activeAllProgramsMenu && isContributor">
         <option value="">Select...</option>
-        <option value="all_programs">All Programs</option>
-        <option value="nominated_programs">Nominated Programs</option>
+        <option value="all_programs">{{ resourceService.frmelmnts.lbl.allPrograms }}</option>
+        <option value="nominated_programs">{{ resourceService.frmelmnts.lbl.nominatedPrograms }}</option>
       </select>
       <!-- <button routerLink="sourcing/create-program" *ngIf="this.router.url.includes('/sourcing')" class="sb-btn sb-btn-normal sb-btn-primary"><i class="plus outline icon"></i> Add New Program</button> -->
     </div>
