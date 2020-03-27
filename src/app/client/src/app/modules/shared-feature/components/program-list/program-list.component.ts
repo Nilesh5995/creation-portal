@@ -31,12 +31,15 @@ export class ProgramListComponent implements OnInit {
   public selectedRole;
   public selectedProgramToAssignRoles;
   public sortPrograms: any;
-  public direction = 'asc';
+  public filterProgramsByType: any;
+  public direction = '';
   public enrollPrograms: IProgram[];
   public telemetryInteractCdata: any;
   public telemetryInteractPdata: any;
   public telemetryInteractObject: any;
   public nominationList;
+  columnName = '';
+  
   constructor(private programsService: ProgramsService, private toasterService: ToasterService, private registryService: RegistryService,
     public resourceService: ResourceService, private userService: UserService, private activatedRoute: ActivatedRoute,
     public router: Router, private datePipe: DatePipe, public configService: ConfigService ) { }
@@ -89,15 +92,33 @@ export class ProgramListComponent implements OnInit {
   private getAllProgramsForContrib(type, status) {
     return this.programsService.getAllProgramsByType(type, status).subscribe(
       response => {
-        this.programs = _.get(response, 'result.programs');
-        if (this.programs.length) {
-           const program = this.filterProgramByDate(this.programs);
-           this.count = _.get(response, 'result.count');
-           this.programs = program;
-           this.sortPrograms = this.programs;
+        const programs = _.get(response, 'result.programs');
+        if (programs.length) {
+           this.programs = this.filterProgramByDate(programs);
+           const nominatedPrograms  = [];
+           this.programsService.getMyProgramsForContrib('Live').subscribe((response) => {
+            _.map(_.get(response, 'result.programs'), (nomination) => {
+              nomination.program.contributionDate = nomination.createdon;
+              nomination.program.nomination_status = nomination.status;
+              nomination.program.nominated_collection_ids = nomination.collection_ids;
+              nominatedPrograms.push(nomination.program);
+            });
+            if(nominatedPrograms.length <= 0)
+            {
+              this.filterProgramsByType = this.programs;
+              this.sortPrograms = this.programs
+              this.count = this.programs.length;
+            }
+            this.mergeAllAndNominatedPrograms(this.programs,nominatedPrograms)
+          }, error => {
+            console.log(error);
+            // TODO: Add error toaster
+          });
         }
       }
     );
+
+    
   }
 
   filterProgramByDate(programs) {
@@ -114,12 +135,14 @@ export class ProgramListComponent implements OnInit {
   }
 
   sort(colName) {
-    if (this.direction === 'asc'){
-      this.programs =  this.sortPrograms.sort((a,b) => 0 - (a[colName] > b[colName] ? -1 : 1));
+    if (this.direction === 'asc' || this.direction === ''){
+      this.programs =  this.sortPrograms.sort((a,b) => b[colName].localeCompare(a[colName]));
       this.direction = 'dsc';
+      this.columnName = colName;
     } else {
-      this.programs =  this.sortPrograms.sort((a, b) => a[colName] < b[colName] ? 1 : a[colName] > b[colName] ? -1 : 0)
+      this.programs =  this.sortPrograms.sort((a,b) => a[colName].localeCompare(b[colName]));
       this.direction = 'asc';
+      this.columnName = colName;
     }
   }
   public getContributionProgramList(req) {
@@ -152,12 +175,45 @@ export class ProgramListComponent implements OnInit {
       });
   }
 
+  mergeAllAndNominatedPrograms(allPrograms,enrolledPrograms)
+  {
+    _.map(allPrograms, (allProgram) => {
+      _.map(enrolledPrograms, (enrolledProgram) => {
+        if(allProgram.program_id == enrolledProgram.program_id)
+        {
+          Object.assign(allProgram,enrolledProgram);
+        }
+      }); 
+    });
+    this.filterProgramsByType = allPrograms;
+    this.sortPrograms = allPrograms
+    this.programs = allPrograms;
+    this.count = this.programs.length;
+
+   }
+
+   filterProgramByType(type)
+   {
+    if(type == 'nominated_programs')
+    {
+          this.programs = this.filterProgramsByType.filter(
+                nominatedPrograms => 
+                nominatedPrograms.nomination_status == "Pending" || nominatedPrograms.nomination_status == "Initiated" || nominatedPrograms.nomination_status == "Approved" || nominatedPrograms.nomination_status == "Rejected" );  
+          this.sortPrograms = this.programs;
+          this.count = this.programs.length;       
+    }
+    else if(type == 'all_programs')
+    {
+      this.programs = this.filterProgramsByType;
+      this.sortPrograms = this.programs;
+      this.count = this.programs.length; 
+    }
+   }
   /**
    * fetch the list of programs.
    */
   private getMyProgramsForContrib(status) {
     if (!_.isEmpty(this.userService.userProfile.userRegData)
-    && this.userService.userProfile.userRegData.User_Org
     && this.userService.userProfile.userRegData.User_Org.roles.indexOf('admin') === -1) {
       const filters = {
         organisation_id: this.userService.userProfile.userRegData.User_Org.orgId
@@ -264,7 +320,7 @@ export class ProgramListComponent implements OnInit {
   }
 
   getProgramNominationStatus(program) {
-    return program.nomination_status;
+    return program.nomination_status ? program.nomination_status : '' ;
   }
 
   getSourcingOrgName(program) {
