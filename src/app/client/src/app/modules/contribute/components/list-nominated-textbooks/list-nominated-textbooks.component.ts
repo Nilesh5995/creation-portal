@@ -206,7 +206,7 @@ export class ListNominatedTextbooksComponent implements OnInit, AfterViewInit, O
             // tslint:disable-next-line:max-line-length
             this.contributorTextbooks = this.collectionHierarchyService.getIndividualCollectionStatus(this.contentStatusCounts, contributorTextbooks);
           }
-
+          console.log(this.contentStatusCounts, 'this.contentStatusCounts')
           this.tempSortTextbooks = this.contributorTextbooks;
           this.showLoader = false;
         },

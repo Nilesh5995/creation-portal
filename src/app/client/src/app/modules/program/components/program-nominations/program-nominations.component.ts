@@ -469,11 +469,15 @@ export class ProgramNominationsComponent implements OnInit, AfterViewInit, OnDes
 
   setContributorName(nomination, isOrg) {
     if (isOrg && !_.isEmpty(nomination.orgData)) {
+      console.log(nomination.orgData,'nomination.orgData')
       return _.trim(nomination.orgData.name);
     } else  if (!_.isEmpty(nomination.userData)) {
+      console.log(nomination.userData.lastName, 'nomination.userData.lastName')
      return _.trim(`${nomination.userData.firstName} ${nomination.userData.lastName || ''}`);
     } else {
+      console.log('null')
       return null;
+      
     }
   }
 
@@ -762,11 +766,14 @@ getPaginatedNominations(offset) {
   };
 this.programsService.post(req).subscribe((data) => {
       if (data.result && data.result.length > 0) {
+        console.log(data.result, 'data.result');
         this.nominations = [];
         _.forEach(data.result, (res) => {
+          console.log(res,'res')
           const isOrg = !_.isEmpty(res.organisation_id);
           const name = this.setContributorName(res, isOrg);
           if (name) {
+            console.log(name);
             this.nominations.push({
               programName: '',
               name: name.trim(),
@@ -784,6 +791,8 @@ this.programsService.post(req).subscribe((data) => {
         this.getSampleContent();
       }
       this.tempNominations = _.cloneDeep(this.nominations);
+      console.log(this.nominations,'this.nominations')
+      console.log(this.tempNominations, 'this.tempNominations');
   }, error => {
     this.showNominationLoader = false;;
     this.toasterService.error(this.resourceService.messages.emsg.projects.m0003);

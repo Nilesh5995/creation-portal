@@ -7,15 +7,14 @@
 		<div class="pb-8">
 			<sui-tabset>
 				<div class="ui pointing secondary menu sb-bg-color-primary-0">
-					<div class="item" suiTabHeader="1" [ngClass]="{'active' : !showTextBookSelector}">
+					<a class="item" suiTabHeader="1" >
 						{{resource.frmelmnts.lbl.details}}
-					</div>
-					<div class="item" suiTabHeader="2" [isDisabled]="!showTextBookSelector"
-						[ngClass]="{'active' : showTextBookSelector}">
+					</a>
+					<a class="item" suiTabHeader="2" >
 						{{resource.frmelmnts.lbl.selectTextbooks}}
-					</div>
+				</a>
 				</div>
-				<div class="ui segment mt-5" suiTabContent="1" [ngClass]="{'active' : !showTextBookSelector}">
+				<div class="ui segment mt-5 dynamicHeight" suiTabContent="1" >
 					<form class="ui form" [formGroup]="createProgramForm">
 						<div class="ui grid">
 							<div class="twelve wide column">
@@ -207,7 +206,7 @@
 						</div>
 					</form>
 				</div>
-				<div class="ui segment mt-5" suiTabContent="2" [ngClass]="{'active' : showTextBookSelector}">
+				<div class="ui segment mt-5 dynamicHeight" suiTabContent="2" >
 					<form class="ui form" [formGroup]="collectionListForm">
 						<div class="ui grid">
 							<div class="three wide column">
@@ -230,7 +229,7 @@
 									</div-->
 								</div>
 							</div>
-							<div class="three wide column">
+							<!-- <div class="three wide column">
 								<div class="field">
 									<label class="d-block"> {{resource.frmelmnts.lbl.grade}}
 										<i class="pull-right question circle link icon pull-right" suiPopup
@@ -245,11 +244,9 @@
 											[value]="gradeLevel">
 										</sui-select-option>
 									</sui-multi-select>
-									<!--div class="ui pointing red basic label below " *ngIf="createProgramForm.controls['gradeLevel'].errors && createProgramForm.controls['gradeLevel'].errors.required && (!createProgramForm.controls['gradeLevel'].pristine || formIsInvalid)">
-										This field is required
-									</div-->
+									
 								</div>
-							</div>
+							</div> -->
 							<div class="three wide column">
 								<div class="field">
 									<label class="d-block"> {{resource.frmelmnts.lbl.subject}}

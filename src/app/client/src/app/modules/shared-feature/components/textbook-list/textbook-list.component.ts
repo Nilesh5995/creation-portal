@@ -77,6 +77,7 @@ export class TextbookListComponent implements OnInit {
         this.tempSortCollections = this.collections;
         this.sortCollection(this.sortColumn);
         this.showLoader = false;
+        console.log( this.collections , 'this.contentStatusCounts');
     } else {
       this.showLoader = false;
     }
